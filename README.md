@@ -31,8 +31,6 @@ Flash programming for TLSR826x chips using only a COM port.
 
 ------------
 
-[========]
-
 #### Samples:
 > **Write Flash:** python.exe TlsrComProg.py -p COM3 we 0 tst.bin
 ```
