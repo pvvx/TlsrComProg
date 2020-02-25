@@ -15,7 +15,7 @@ import io
 
 __progname__ = 'TLSR826x Floader'
 __filename__ = 'TlsrComProg'
-__version__ = "25.02.20 (beta)"
+__version__ = "25.02.20 (beta2)"
 
 CMD_VER	 = b'\x00'	# Get version 
 CMD_RBF	 = b'\x01'	# Read Block Flash
@@ -413,8 +413,14 @@ def main():
 	# print('Get version floader...')
 	byteSent = serialPort.write(crc_blk(b'\x00\x00\x00\x00'))
 	read = serialPort.read(10)
-	if len(read)==6 and  read[0]==0 and crc_chk(read):
-		print('Floader %04x ver: %02x' % (read[2] | (read[3]<<8), read[1]))
+	if len(read)==6 and  read[0]==0  and crc_chk(read):
+		tid = read[2] | (read[3]<<8)
+		ver = read[1]
+		if tid == 0 and ver == 0:
+			print('Error: Check connection to the module!')
+			serialPort.close
+			sys.exit(10)
+		print('Floader %04x ver: %02x' % (tid, ver))
 	else:
 		print('Error get version floader!')
 		serialPort.close
@@ -428,8 +434,12 @@ def main():
 			print('Power Off in the module, Reset and Restart!')
 			serialPort.close
 			sys.exit(5)
+		elif jedecid == 0:					
+			print('Error: Check connection to the module!')
+			serialPort.close
+			sys.exit(10)
 		else:			
-			print('Flash JEDEC ID: %06x, Size: %d kbytes' % (jedecid, read[2]*8))
+			print('Flash JEDEC ID: %06x, Size: %d kbytes' % (jedecid, ((1<<read[3])>>10)))
 	else:
 		print('Error get version floader!')
 		serialPort.close
