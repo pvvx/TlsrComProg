@@ -109,17 +109,6 @@ inline void uart_init(void) {
 	REG_ADDR32(0x504) = (unsigned short)((u32)(&utxb)) //set tx buffer address
 		| 	(MASK_VAL(FLD_DMA_BUF_SIZE, UART_TX_BUFF_SIZE>>4) //set tx buffer size
 			<< 16);
-#if CHIP_TYPE == MCU_CORE_8266
-//  CPGIO PC6/PC7 enable uart function and enable input
-//	TX = GPIO_PC6 + PM_PIN_UP_DOWN_FLOAT, RX = GPIO_PC7 + PM_PIN_PULLUP_1M
-	analog_write(0x10, (analog_read(0x10) & 0xf0) | PM_PIN_UP_DOWN_FLOAT | (PM_PIN_PULLUP_1M<<2));
-	BM_CLR(reg_gpio_gpio_func(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF); // disable PC6/PC7 as gpio
-	BM_CLR(reg_gpio_config_func(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF); // disable PC6/PC7 keyscan function
-	BM_SET(reg_gpio_ie(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF);  // enable input
-#else
-#error @TODO code!
-	UART_GPIO_CFG_PC2_PC3();  // enable uart function and enable input
-#endif
 }
 
 _attribute_ram_code_ void flash_write_sector(u32 addr, u32 len, u8 *buf) {
@@ -182,14 +171,27 @@ _attribute_ram_code_ int main (void) {
 	reg_system_tick_ctrl = FLD_SYSTEM_TICK_START; //	REG_ADDR8(0x74f) = 0x01;
 
 	crcInit();
-#if (SWIRE_OFF)
-#if CHIP_TYPE == MCU_CORE_8266
-	reg_gpio_gpio_func(GPIO_PA0) |= GPIO_PA0 & 0xff; // GPIO_PA0 set gpio
-#else
-	reg_gpio_gpio_func(GPIO_PB0) |= GPIO_PB0 & 0xff; // GPIO_PB0 set gpio
-#endif
-#endif
 	uart_init();
+	// sws off and enable uart function and enable input
+	if(reg_mcu_id == MCU_PROD_ID__8266) { // CHIP_TYPE == MCU_CORE_8266
+		//  ART_GPIO_CFG_PC6_PC7: CPGIO PC6/PC7 enable uart function and enable input
+		analog_write(0x10, (analog_read(0x10) & 0xf0) | PM_PIN_UP_DOWN_FLOAT | (PM_PIN_PULLUP_1M<<2));
+#if (SWIRE_OFF)
+		reg_gpio_gpio_func(GPIO_PA0) |= GPIO_PA0 & 0xff; // GPIO_PA0/SWS set gpio
+#endif
+		BM_CLR(reg_gpio_gpio_func(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF); // disable PC6/PC7 as gpio
+		BM_CLR(reg_gpio_config_func(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF); // disable PC6/PC7 keyscan function
+		BM_SET(reg_gpio_ie(GPIO_PC6), (GPIO_PC7 | GPIO_PC6) & 0xFF);  // enable input
+	} else { // CHIP_TYPE == MCU_CORE_8269
+		// UART_GPIO_CFG_PC2_PC3:  CPGIO PC2/PC3 enable uart function and enable input
+		analog_write(0x0f, (analog_read(0x0f) & 0xf0) | PM_PIN_UP_DOWN_FLOAT | (PM_PIN_PULLUP_1M<<2));
+#if (SWIRE_OFF)
+		reg_gpio_gpio_func(GPIO_PB0) |= GPIO_PB0 & 0xff; // GPIO_PB0/SWS set gpio
+#endif
+		BM_CLR(reg_gpio_gpio_func(GPIO_PC2), (GPIO_PC2 | GPIO_PC3) & 0xFF);
+		BM_SET(reg_gpio_config_func(GPIO_PC2), (GPIO_PC2 | GPIO_PC3) & 0xFF);
+		BM_SET(reg_gpio_ie(GPIO_PC2), (GPIO_PC2 | GPIO_PC3) & 0xFF);  //enable input
+	}
 #if USE_EXT_FLASH
 #define reg_gpio_config_func6   REG_ADDR8(0x5b6)
 #define reg_gpio_config_func(i)		REG_ADDR8(0x5b0 +(i>>8))  	  //5b0 5b1 5b2 5b3 5b4 5b5
@@ -268,7 +270,8 @@ _attribute_ram_code_ int main (void) {
 								else utxb.pkt.head.cmd |= 0x80;
 								break;
 							case CMD_GET_VERSION: // 00 00 00 00 00 24 ->
-								utxb.ud[0] = (VERSION_BCD << 8) | (CHIP_ID << 16);
+								utxb.pkt.head.addrl = VERSION_BCD;
+								utxb.pkt.head.addrh = reg_prod_id; //chip id
 								break;
 							default:	// 1F 34 56 78 79 BC -> 9F 34 56 78 50 7C
 								utxb.pkt.head.cmd |= 0x80;

@@ -1,7 +1,8 @@
 # TlsrComProg
 TLSR826x programmator via COM port
 
-(!)Beta Limitations: Only TLSR8266 Chip Used (modules JDY-10, E104-BT05, ...)
+(!) Limitations: Only TLSR8266 and TLSR8269 Chip Used
+(modules JDY-10/M, E104-BT05, E104-BT10N/M, ...)
 
 ### Telink SWIRE simulation on a COM port + COM Flasher.
 

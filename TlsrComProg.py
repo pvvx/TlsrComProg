@@ -15,7 +15,7 @@ import io
 
 __progname__ = 'TLSR826x Floader'
 __filename__ = 'TlsrComProg'
-__version__ = "25.02.20 (beta2)"
+__version__ = "26.02.20"
 
 CMD_VER	 = b'\x00'	# Get version 
 CMD_RBF	 = b'\x01'	# Read Block Flash
@@ -37,7 +37,7 @@ class FatalError(RuntimeError):
 
 def signal_handler(signal, frame):
 	print()
-	print('Keyboard Break signal!')
+	print('Keyboard Break!')
 	sys.exit(0)
 
 crctable = (
@@ -406,21 +406,33 @@ def main():
 		print('\rBin bytes writen:', binWrite)		
 		print('CPU go Start...')
 		byteSent += serialPort.write(sws_wr_addr(0x0602, b'\x88')) # cpu go Start
-		serialPort.read(byteSent-byteRead+33)
-		#time.sleep(0.1)
+		time.sleep(0.07)
+		serialPort.flushInput()
+		serialPort.flushOutput()
+		serialPort.reset_input_buffer()
+		serialPort.reset_output_buffer()
+		time.sleep(0.07)
 #	print('COM bytes sent:', byteSent)
 	print('------------------------------------------------')
 	# print('Get version floader...')
 	byteSent = serialPort.write(crc_blk(b'\x00\x00\x00\x00'))
 	read = serialPort.read(10)
 	if len(read)==6 and  read[0]==0  and crc_chk(read):
-		tid = read[2] | (read[3]<<8)
+		cid = read[2] | (read[3]<<8)
 		ver = read[1]
-		if tid == 0 and ver == 0:
+		if cid == 0 and ver == 0:
 			print('Error: Check connection to the module!')
 			serialPort.close
 			sys.exit(10)
-		print('Floader %04x ver: %02x' % (tid, ver))
+		if cid == 0x5325:
+			chip = 'TLSR8266'
+		elif cid == 0x5327:
+			chip = 'TLSR8269'
+		elif cid == 0x5326:
+			chip = 'TLSR8267'
+		else:	
+			chip = '?'
+		print('ChipID: 0x%04x (%s), Floader ver: %x.%x' % (cid, chip, (ver>>8)&0x0f, ver&0x0f))
 	else:
 		print('Error get version floader!')
 		serialPort.close
