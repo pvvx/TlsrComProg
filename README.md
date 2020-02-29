@@ -8,7 +8,7 @@ TLSR826x programmator via COM port
 
 Flash programming for TLSR826x chips using only a COM port.
 
-![SCH](https://github.com/pvvx/TlsrComProg/blob/master/schematic.gif)
+![SCH](https://github.com/pvvx/TlsrComProg/blob/master/Doc/img/schematic.gif)
 
     Usage: TlsrComProg [-h] [--port PORT] [--tact TACT] [--fldr FLDR]
                        [--baud BAUD]
@@ -35,41 +35,41 @@ Flash programming for TLSR826x chips using only a COM port.
 ------------
 
 #### Samples:
-> **Write Flash:** python.exe TlsrComProg.py -p COM3 we 0 tst.bin
+> **Write Flash:** python.exe TlsrComProg.py -p COM3 -t 5000 we 0 8266_jdy_10.bin
 ```
 ================================================
-TLSR826x Floader version 25.02.20 (beta)
+TLSR826x Floader version 26.02.20
 ------------------------------------------------
 Open COM3, 230400 baud...
 Reset module (RTS low)...
-Activate (600 ms)...
+Activate (5000 ms)...
 Connection...
 Load <floader.bin> to 0x8000...
-Bin bytes writen: 1756
+Bin bytes writen: 1860
 CPU go Start...
 ------------------------------------------------
-Floader 8266 ver: 01
+ChipID: 0x5325 (TLSR8266), Floader ver: 0.1
 Flash JEDEC ID: 514013, Size: 512 kbytes
 ------------------------------------------------
-Inputfile: tst.bin
-Write Flash data 0x00000000 to 0x00001000...
+Inputfile: 8266_jdy_10.bin
+Write Flash data 0x00000000 to 0x0000a984...
 ------------------------------------------------
 Done!
 ```
 > **Read Flash:** python.exe TlsrComProg.py -p COM3 rf 0 0x80000 ff.bin
 ```
 ================================================
-TLSR826x Floader version 25.02.20 (beta)
+TLSR826x Floader version 26.02.20
 ------------------------------------------------
 Open COM3, 230400 baud...
 Reset module (RTS low)...
 Activate (600 ms)...
 Connection...
 Load <floader.bin> to 0x8000...
-Bin bytes writen: 1756
+Bin bytes writen: 1860
 CPU go Start...
 ------------------------------------------------
-Floader 8266 ver: 01
+ChipID: 0x5325 (TLSR8266), Floader ver: 0.1
 Flash JEDEC ID: 514013, Size: 512 kbytes
 ------------------------------------------------
 Read Flash from 0x000000 to 0x080000...
@@ -80,17 +80,17 @@ Done!
 > **Erase All Flash:** python.exe TlsrComProg.py -p COM3 ea
 ```
 ================================================
-TLSR826x Floader version 25.02.20 (beta)
+TLSR826x Floader version 26.02.20
 ------------------------------------------------
 Open COM3, 230400 baud...
 Reset module (RTS low)...
 Activate (600 ms)...
 Connection...
 Load <floader.bin> to 0x8000...
-Bin bytes writen: 1756
+Bin bytes writen: 1860
 CPU go Start...
 ------------------------------------------------
-Floader 8266 ver: 01
+ChipID: 0x5325 (TLSR8266), Floader ver: 0.1
 Flash JEDEC ID: 514013, Size: 512 kbytes
 ------------------------------------------------
 Erase All Flash ...
