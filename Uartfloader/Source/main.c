@@ -18,11 +18,6 @@
  */
 //-------------------------------
 #define VERSION_BCD 0x01 // 0x12 -> Ver 1.2
-#if CHIP_TYPE == MCU_CORE_8266
-#define CHIP_ID 0x8266
-#else
-#define CHIP_ID 0x8269
-#endif
 //------------------------------- Init UART ---
 #define UART_BAUD 230400 // 115200 or 230400
 
@@ -32,6 +27,9 @@
 #elif UART_BAUD == 230400
 #define bwpc 		9  // 32000000/(9+1)/(13+1)=228571.428571
 #define uartCLKdiv	13
+#elif UART_BAUD == 500000
+#define bwpc 		7  // 32000000/(7+1)/(7+1)=500000
+#define uartCLKdiv	7
 #endif
 
 #define DATA_BUFF_SIZE 		1024

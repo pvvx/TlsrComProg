@@ -15,7 +15,7 @@ import io
 
 __progname__ = 'TLSR826x Floader'
 __filename__ = 'TlsrComProg'
-__version__ = "26.02.20"
+__version__ = "01.03.20"
 
 CMD_VER	 = b'\x00'	# Get version 
 CMD_RBF	 = b'\x01'	# Read Block Flash
@@ -85,39 +85,37 @@ def crc_chk(data: bytearray):
 	if c == crc16(data, len(data)-2):
 		return 1
 	return 0
-    		
 def arg_auto_int(x):
 	return int(x, 0)
-
 def sws_code_blk(blk):
 	pkt=[]
-	d = bytearray([0xd8,0xdf,0xdf,0xdf,0xdf])
+	d = bytearray([0xe8,0xef,0xef,0xef,0xef])
 	for el in blk:
 		if (el & 0x80) != 0:
-			d[0] &= 0x1f
+			d[0] &= 0x0f
 		if (el & 0x40) != 0:
-			d[1] &= 0xf8
+			d[1] &= 0xe8
 		if (el & 0x20) != 0:
-			d[1] &= 0x1f
+			d[1] &= 0x0f
 		if (el & 0x10) != 0:
-			d[2] &= 0xf8
+			d[2] &= 0xe8
 		if (el & 0x08) != 0:
-			d[2] &= 0x1f
+			d[2] &= 0x0f
 		if (el & 0x04) != 0:
-			d[3] &= 0xf8
+			d[3] &= 0xe8
 		if (el & 0x02) != 0:
-			d[3] &= 0x1f
+			d[3] &= 0x0f
 		if (el & 0x01) != 0:
-			d[4] &= 0xf8
+			d[4] &= 0xe8
 		pkt += d 
-		d = bytearray([0xdf,0xdf,0xdf,0xdf,0xdf])
+		d = bytearray([0xef,0xef,0xef,0xef,0xef])
 	return pkt
 def sws_rd_addr(addr):
 	return sws_code_blk(bytearray([0x5a, (addr>>8)&0xff, addr & 0xff, 0x80]))
 def sws_code_end():
-	return sws_code_blk([0xff])
+	return sws_code_blk(b'\xff')
 def sws_wr_addr(addr, data):
-	return sws_code_blk(bytearray([0x5a, (addr>>8)&0xff, addr & 0xff, 0x00]) + bytearray(data)) + sws_code_blk([0xff])
+	return sws_code_blk(bytearray([0x5a, (addr>>8)&0xff, addr & 0xff, 0x00]) + bytearray(data)) + sws_code_end()
 
 #--------------------
 def EraseSectorsFlash(rs, offset = 0, count = 1):
@@ -299,9 +297,9 @@ def main():
 								   serial.EIGHTBITS,\
 								   serial.PARITY_NONE, \
 								   serial.STOPBITS_ONE)
-		serialPort.setDTR(False)
 		serialPort.setRTS(False)
-		time.sleep(0.01)
+		serialPort.setDTR(False)
+		# time.sleep(0.01)
 		serialPort.flushInput()
 		serialPort.flushOutput()
 		serialPort.reset_input_buffer()
@@ -310,18 +308,15 @@ def main():
 		print ('Error: Open %s, %d baud!' % (args.port, args.baud))
 		sys.exit(1)
 	warn = 0
-	serialPort.timeout = 100*12/args.baud
+	serialPort.timeout = 33*12/args.baud + 0.001
 	#--------------------------------
 	# Test Floader Already: Send BAD CMD
 	# 1F 34 56 78 79 BC -> 9F 34 56 78 50 7C ?
-	byteSent = serialPort.write(crc_blk(b'\x1F\x34\x56\x78'))
-	read = serialPort.read(10)
-	if read != crc_blk(b'\x9F\x34\x56\x78'):
-#		print('Floader is already working!')
-#		serialPort.close
-#		sys.exit(0)
-#	else:	
+	byteSent = serialPort.write(crc_blk(b'\x1f\x34\x56\x78'))
+	read = serialPort.read(33)
+	if read != crc_blk(b'\x9f\x34\x56\x78'):
 		#--------------------------------
+		# Open Floader
 		try:
 			stream = open(args.fldr, 'rb')
 			size = os.path.getsize(args.fldr)
@@ -335,56 +330,64 @@ def main():
 			print('Error: File size = %d!'% size)
 			sys.exit(3)
 		#--------------------------------
-		# issue reset-to-bootloader:
-		# RTS = either RESET (active low = chip in reset)
-		# DTR = active low
-		print('Reset module (RTS low)...')
-		serialPort.setDTR(True)
-		serialPort.setRTS(True)
-		time.sleep(0.05)
-		serialPort.setDTR(False)
-		serialPort.setRTS(False)
-		#--------------------------------
-        # Stop CPU|: [0x0602]=5
-		print('Activate (%d ms)...' % args.tact)
-		tact = args.tact/1000.0
-		blk = sws_wr_addr(0x0602, bytearray([5]))
-		byteSent = serialPort.write(blk)
+   	    # Stop CPU|: [0x0602]=5
+		serialPort.write(sws_code_end())
+		blk = sws_wr_addr(0x0602, b'\x05')
+		serialPort.write(blk)
 		if args.tact != 0:
+			#--------------------------------
+			# issue reset-to-bootloader:
+			# RTS = either RESET (active low = chip in reset)
+			# DTR = active low
+			print('Reset module (RTS low)...')
+			serialPort.setDTR(True)
+			serialPort.setRTS(True)
+			time.sleep(0.05)
+			print('Activate (%d ms)...' % args.tact)
+			tact = args.tact/1000.0
+			for _ in range(5):
+				byteSent +=	serialPort.write(blk)
+			serialPort.setRTS(False)
+			for _ in range(5):
+				byteSent +=	serialPort.write(blk)
+			serialPort.setDTR(False)
+			byteSent = serialPort.write(blk)
 			t1 = time.time()
 			while time.time()-t1 < tact:
-				for i in range(5):
-					byteSent +=	serialPort.write(blk)
-				serialPort.reset_input_buffer()
-		time.sleep(byteSent*12/args.baud - tact)
-		while len(serialPort.read(1000)):
-			continue
+				for _ in range(5):
+					serialPort.write(blk)
+		time.sleep(0.001)
+		serialPort.flushOutput()
+		serialPort.flushInput()
+		serialPort.reset_input_buffer()
 		#--------------------------------
 		# Set SWS speed low: [0x00b2]=50
-		byteSent = serialPort.write(sws_wr_addr(0x00b2, b'\x2d'))
-		read = serialPort.read(byteSent+33)
-		byteRead = len(read)
+		byteSent = serialPort.write(sws_code_end())
+		x = int(32000000/args.baud)
+		if x > 127:
+			x = 127
+		byteSent += serialPort.write(sws_wr_addr(0x00b2, bytearray([x])))
+		#--------------------------------
+		# Test read bytes [0x00b2]
+		byteSent += serialPort.write(sws_rd_addr(0x00b2))
+		byteRead = len(serialPort.read(byteSent+33))
+		# print(byteRead, byteSent)
 		if byteRead != byteSent:
 			byteSent = 0
 			warn += 1
 			print('Warning: Wrong RX-TX connection?')
-		#--------------------------------
-		# Test read bytes [0x00b2]
-		byteSent += serialPort.write(sws_rd_addr(0x00b2))
-		# start read
-		byteSent += serialPort.write(b'\xff')
-		time.sleep(0.05)
-		read = serialPort.read(byteSent-byteRead+33)
-		byteRead += len(read)
-		if byteRead <= byteSent:
+		# Start read
+		serialPort.write(b'\xff')
+		read = serialPort.read(33)
+		byteRead = len(read)
+		if byteRead == 1 and read[0] == b'\xff':
 			print('Warning: Pin RX no connection to the module?')		
 			warn += 1
 		else:
 			print('Connection...')		
 		# stop read
-		byteSent += serialPort.write(sws_code_end())
-		read = serialPort.read(byteSent-byteRead+33)
-		byteRead += len(read)
+		byteSent = serialPort.write(sws_code_end())
+		serialPort.read(33)
 		#--------------------------------
 		# Load floader.bin
 		binWrite = 0
@@ -412,7 +415,7 @@ def main():
 		serialPort.reset_input_buffer()
 		serialPort.reset_output_buffer()
 		time.sleep(0.07)
-#	print('COM bytes sent:', byteSent)
+	# print('COM bytes sent:', byteSent)
 	print('------------------------------------------------')
 	# print('Get version floader...')
 	byteSent = serialPort.write(crc_blk(b'\x00\x00\x00\x00'))
