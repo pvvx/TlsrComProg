@@ -17,7 +17,7 @@
  * Calculator CRC-16/MODBUS: https://crccalc.com/
  */
 //-------------------------------
-#define VERSION_BCD 0x01 // 0x12 -> Ver 1.2
+#define VERSION_BCD 0x02 // 0x12 -> Ver 1.2
 //------------------------------- Init UART ---
 #define UART_BAUD 230400 // 115200 or 230400
 
@@ -268,8 +268,15 @@ _attribute_ram_code_ int main (void) {
 								else utxb.pkt.head.cmd |= 0x80;
 								break;
 							case CMD_GET_VERSION: // 00 00 00 00 00 24 ->
-								utxb.pkt.head.addrl = VERSION_BCD;
-								utxb.pkt.head.addrh = reg_prod_id; //chip id
+								switch(urxb.pkt.head.addrl) {
+								default: // case 0:
+									utxb.pkt.head.addrl = VERSION_BCD;
+									utxb.pkt.head.addrh = reg_prod_id; //chip id
+									break;
+								case 1:
+									REG_ADDR8(0x6f) = 0x20;   // mcu reboot
+									break;
+								}
 								break;
 							default:	// 1F 34 56 78 79 BC -> 9F 34 56 78 50 7C
 								utxb.pkt.head.cmd |= 0x80;

@@ -1,0 +1,1 @@
+python.exe TlsrUSBProg.py -p COM14 rf 0 0x80000 ff.bin
