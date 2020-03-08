@@ -33,7 +33,7 @@ void USBCDC_RxCb(unsigned char *data, unsigned int len);
 #define USB_RX_CALLBACK USBCDC_RxCb(p, len)
 #define USB_TX_CALLBACK {utxb.len = 0;}
 
-#define SECTION_USB_CODE _attribute_ram_code_
+#define SECTION_USB_CODE // _attribute_ram_code_
 #define SECTION_USB_CONST const
 
 

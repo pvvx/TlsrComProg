@@ -1,4 +1,4 @@
-#
+# Makefile
 
 TARGET  = usbfloader
 
@@ -16,8 +16,7 @@ ARCH	= $(GCCPATH)-elf-ar
 SIZE	= $(GCCPATH)-elf-size
 
 
-#CRT0=./mcu/cstartup_8266.S
-CRT0=./mcu/cstartup_826x_floader.S
+CRT0=./mcu/cstartup_8266.S
 
 WARNINGS=-Wall -Wextra -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-align -Wsign-compare \
 		-Waggregate-return -Wunused
@@ -25,17 +24,9 @@ WARNINGS=-Wall -Wextra -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-align
 OTHER_CFLAGS= -fdata-sections -ffunction-sections \
 -fpack-struct -fshort-enums -finline-small-functions -fshort-wchar -fms-extensions
 
-
-# This allow you to use portDEBUG_PRINTF()
-DEBUG_FLAGS = -DTDEBUG=1
-
-# It's unreal for people at this stage and still  using old C standards - PS
-CFLAGS= -O2 $(WARNINGS) $(DEBUG_FLAGS) $(OTHER_CFLAGS) -std=gnu99 -I. -I./Include
+CFLAGS= -O2 $(WARNINGS) $(OTHER_CFLAGS) -std=gnu99 -I. -I./Include
 	
-
-LINKER_FLAGS=-Xlinker -o$(TARGET).abs -Xlinker -M -Xlinker -Map=$(TARGET).map
-
-LDFLAGS = -Wl,--gc-sections -T ./mcu/boot_826x.link
+LDFLAGS = --gc-sections -T ./boot.link
 
 SOURCE_DIR=./Source
 
@@ -55,29 +46,31 @@ $(SOURCE_DIR)/usbCDC/usb_hw.c
 # Define all object files.
 #
 TC32_OBJ = $(TC32_SRC:.c=.o)
+CRT0_OBJ = $(CRT0:.S=.o)
 
+shws: $(TARGET).elf
+	python TlsrMemInfo.py $<
 
-all: $(TARGET).elf
+all: $(TARGET).elf shws
 
+$(TARGET).elf : $(TC32_OBJ) $(CRT0_OBJ)
+	$(LD) $(LDFLAGS) -o $(TARGET).elf $(TC32_OBJ) $(CRT0_OBJ)
+	$(OBJCOPY) -O binary $(TARGET).elf $(TARGET).bin
+	$(OBJDUMP) -x -D -l -S $(TARGET).elf > $(TARGET).lst
+	$(SIZE) --format=SysV -x $(TARGET).elf
 
-$(TARGET).elf : $(ASM_OBJ) $(TC32_OBJ) $(CRT0) 
-	$(CC) $(CFLAGS) $(TC32_OBJ)  -nostartfiles -nostdlib $(CRT0) $(LDFLAGS) $(LINKER_FLAGS)
-	$(OBJCOPY) -O binary $(TARGET).abs $(TARGET).bin
-	$(OBJCOPY) -O elf32-littletc32  $(TARGET).abs $(TARGET).elf
-	$(OBJDUMP) -x -D -l -S $(TARGET).abs > $(TARGET).lst
-	$(SIZE) --format=SysV $(TARGET).elf
-
-$(TC32_OBJ) : %.o : %.c $(LDSCRIPT)
+$(TC32_OBJ) : %.o : %.c
 	$(CC) -c $(CFLAGS) $< -o $@
+	$(OBJDUMP) -x -D -l -S $*.o > $*.lst
+	
+$(CRT0_OBJ) : %.o : %.S
+	$(AS) $< -o $@
 	$(OBJDUMP) -x -D -l -S $*.o > $*.lst
 	
 print-%  : ; @echo $* = $($*)
 
 clean :
-	rm -rf $(TC32_OBJ) *.map *.mot *.elf *.a *.abs *.i *.s *.list
+	rm -rf $(TC32_OBJ) $(CRT0_OBJ) *.map *.elf 
 	find $(SOURCE_DIR) -name "*.lst" -exec rm {} \;
-	find ./ -name "*.o" -exec rm {} \;
-	find ./ -name "*.a" -exec rm {} \;
-	find ./ -name "cscope.*" -exec rm {} \;
-	find ./ -name "tags" -exec rm {} \;
+	find ./mcu -name "*.lst" -exec rm {} \;
 	touch Makefile

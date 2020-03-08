@@ -1,4 +1,4 @@
-@rem Path=E:\Telink\NanosicSDK;E:\Telink\NanosicSDK\jre\bin;E:\Telink\NanosicSDK\opt\tc32\tools;E:\Telink\NanosicSDK\opt\tc32\bin;E:\Telink\NanosicSDK\usr\bin;E:\Telink\NanosicSDK\bin
+@Path=E:\Telink\SDK\bin;E:\Telink\SDK\opt\tc32\bin;E:\Telink\SDK\opt\tc32\tools;%Path%
 @del /Q floader.bin
 @del /Q floader.lst
 make -s clean
