@@ -102,3 +102,5 @@ Done!
 
 [UartFloader Source Code](https://github.com/pvvx/TlsrComProg/tree/master/Uartfloader)
 
+[USBCOMFloader Source Code](https://github.com/pvvx/TlsrComProg/tree/master/Usbfloader)
+

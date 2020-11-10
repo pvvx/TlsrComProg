@@ -20,7 +20,7 @@ Throughput: 165391 Bytes/s
 Done!
 ```
 
-[IDE](http://wiki.telink-semi.cn/dokuwiki/doku.php?id=menu:tools:ide_quick_start)
+[IDE](http://wiki.telink-semi.cn/wiki/IDE-and-Tools/IDE-for-TLSR8-Chips/)
 
 
 
