@@ -435,7 +435,7 @@ def main():
 			chip = 'TLSR8267'
 		else:	
 			chip = '?'
-		print('ChipID: 0x%04x (%s), Floader ver: %x.%x' % (cid, chip, (ver>>8)&0x0f, ver&0x0f))
+		print('ChipID: 0x%04x (%s), Floader ver: %x.%x' % (cid, chip, (ver>>4)&0x0f, ver&0x0f))
 	else:
 		print('Error get version floader!')
 		serialPort.close
